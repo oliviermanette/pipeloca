@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>img/pipeline_500_2019-Jan-16_04-59-05PM-000.png</file>
+    </qresource>
+</RCC>
