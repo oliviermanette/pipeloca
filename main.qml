@@ -4,10 +4,11 @@ import QtCharts 2.2
 
 Window {
     visible: true
-    width: 1280
-    height: 1024
+    //width: 1280
+    //height: 860
+    visibility: Window.FullScreen
     color: "#2f3564"
-    title: qsTr("Hello World")
+    title: qsTr("Pipeline Sentinel Demo by FLOD")
 
     Rectangle {
         id: rectangle
@@ -23,7 +24,7 @@ Window {
         x: 19
         y: 187
         width: 619
-        height: 598
+        height: 426
         color: "#6383c6"
 
         ListView {
@@ -31,7 +32,7 @@ Window {
             x: 8
             y: 8
             width: 603
-            height: 582
+            height: 410
             model: ListModel {
                 ListElement {
                     name: "Grey"
@@ -99,7 +100,7 @@ Window {
     Rectangle {
         id: rectangle2
         x: 20
-        y: 791
+        y: 624
         width: 1240
         height: 221
         color: "#03e3fd"
