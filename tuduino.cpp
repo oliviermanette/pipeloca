@@ -11,6 +11,8 @@ tuduino::tuduino(QObject *parent) : QObject(parent)
     serial[1].open(QIODevice::ReadWrite);
     QObject::connect(&serial[1], SIGNAL(readyRead()),this,SLOT(receiveSignal2()));
     gMode[1] = Normal;
+    gShtBothPeak = 0;
+    gblStartedPeak = false;
 }
 
 tuduino::~tuduino()
@@ -88,12 +90,74 @@ void tuduino::askFFTR()
 
 void tuduino::askFFTL(int sensorID)
 {
+    if (gShtBothPeak==2){
+        gShtBothPeak=0;
+        gblStartedPeak = false;
+        emit gotBothPeaks();
+        calcDiffParameters();
+    }
     gMode[sensorID] = FFTL;
     QByteArray data="f";
     gPosCursor[sensorID] = 0;
     serial[sensorID].write(data);
     if( serial[sensorID].waitForBytesWritten(100) )
         qDebug() << "sent: " << data << "("<<sensorID<<")";
+}
+
+void tuduino::calcDiffParameters()
+{
+    qDebug()<<"Calcule les paramètres";
+}
+
+double tuduino::calcSumAbs(float *vector, int size)
+{
+    double ldblOutput=0;
+    for (int i=0;i<size;i++){
+        if (vector[i]<0)
+            ldblOutput += static_cast<double>(vector[i]*-1);
+        else ldblOutput += static_cast<double>(vector[i]);
+    }
+    return ldblOutput;
+}
+
+qulonglong tuduino::calcSumAbs(int *vector, int size)
+{
+    qulonglong ldblOutput=0;
+    for (int i=0;i<size;i++){
+        if (vector[i]<0)
+            ldblOutput += static_cast<qulonglong>(vector[i]*-1);
+        else ldblOutput += static_cast<qulonglong>(vector[i]);
+    }
+    return ldblOutput;
+}
+
+float tuduino::calcFreqMoyen(float *vector, int size)
+{
+    float lFltOut=0;
+    double lDblsum=0;
+    double ldblCoeff=0;
+    for (int i=0;i<size;i++){
+        ldblCoeff += i*static_cast<double>(vector[i]);
+        lDblsum += static_cast<double>(vector[i]);
+    }
+    lFltOut = static_cast<float>(ldblCoeff/lDblsum);
+    return lFltOut;
+}
+
+float tuduino::convId2Freq(int lintID, int lintfreqMax, int lintNbStep)
+{
+    return static_cast<float>(lintID*lintfreqMax/lintNbStep);
+}
+
+uint tuduino::getCurrentTS()
+{
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+
+    /* Returns the datetime as the number of seconds that have passed since 1970-01-01T00:00:00, Coordinated Universal Time  */
+
+    uint unixtime = currentDateTime.toTime_t();
+    return unixtime;
+
 }
 
 void tuduino::traitementSignal(int sensorID)
@@ -105,6 +169,11 @@ void tuduino::traitementSignal(int sensorID)
             int position = data.toInt();
             if (position<9){
                 qDebug()<<position;
+                if ((!gblStartedPeak)||((getCurrentTS()-currentPeakTS)>1500)){ //Vérifier que le timestamp est en ms
+                    currentPeakTS = getCurrentTS();
+                    gblStartedPeak = true;
+                }
+
                 emit peakDetected(position);
                 askPeaks(sensorID);
             }
@@ -122,6 +191,7 @@ void tuduino::traitementSignal(int sensorID)
             if(gPosCursor[sensorID]<4096)
                 gPosCursor[sensorID]++;
             if (gPosCursor[sensorID]==4096){
+                gShtBothPeak++;
                 askFFTL(sensorID);
                 emit gotPeaks();
             }
@@ -165,7 +235,10 @@ void tuduino::traitementSignal(int sensorID)
                 gPosCursor[sensorID]++;
             if (gPosCursor[sensorID]==1024){
                 gMode[sensorID] = Normal;
-                emit gotFFTL();
+                if (sensorID==0)
+                    emit gotFFTL();
+                else if (sensorID==1)
+                    emit gotFFTR();
             }
         }
     }
@@ -202,6 +275,38 @@ float tuduino::getFFTL(short shtPosition)
 float tuduino::getFFTR(short shtPosition)
 {
     return gfltFFTR[shtPosition];
+}
+
+qulonglong tuduino::getIntensiteL()
+{
+    tmpLngSumL = calcSumAbs(gintLeftPeak, 4096);
+    return tmpLngSumL;
+}
+
+qulonglong tuduino::getIntensiteR()
+{
+    tmpLngSumR = calcSumAbs(gintRightPeak, 4096);
+    return tmpLngSumR;
+}
+
+float tuduino::getRatio()
+{
+    return tmpLngSumL/tmpLngSumR;
+}
+
+float tuduino::getAvgFreqL()
+{
+    return calcFreqMoyen(gfltFFTL,512); //convId2Freq
+}
+
+float tuduino::getAvgFreqR()
+{
+    return calcFreqMoyen(gfltFFTR,512); //convId2Freq
+}
+
+uint tuduino::getPeakTS()
+{
+    return currentPeakTS;
 }
 
 void tuduino::receiveSignal()
