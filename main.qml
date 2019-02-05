@@ -43,16 +43,31 @@ Window {
                 Row {
                     id: row1
                     spacing: 10
-                    Rectangle {
-                        width: 40
-                        height: 40
-                        color: colorCode
-                    }
-
                     Text {
-                        text: name
+                        text: datetime
                         anchors.verticalCenter: parent.verticalCenter
                         font.bold: true
+                    }
+                    Text {
+                        text: intensiteL
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: intensiteR
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: Ratio
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.bold: true
+                    }
+                    Text {
+                        text: AvgFreqL
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: AvgFreqR
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
             }
@@ -212,8 +227,6 @@ Window {
     Connections{
         target: TuDuino
         onGotPeaks:{
-            valeursSensorR.clear();
-            valeursSensorL.clear();
             console.log("Got Peaks on QML");
             for (var i=0;i<4096;i+=8)
             {
@@ -222,18 +235,22 @@ Window {
             }
         }
         onGotFFTL:{
+            console.log("here because we got a FFTL signal");
             valeursSensorFFTL.clear();
+            valeursSensorL.clear();
             for (var i=0;i<256;i++)
-            {
-                valeursSensorFFTL.append(i,TuDuino.getFFTL(i));
-            }
+                valeursSensorFFTL.append(i,TuDuino.getFFTL(i));//*/
+            for (var j=0;j<4096;j+=8)
+                valeursSensorL.append(Number(j/8),TuDuino.getLeftPeak(j));
         }
         onGotFFTR:{
+            console.log("here because we got a FFTR signal");
+            valeursSensorR.clear();
             valeursSensorFFTR.clear();
             for (var i=0;i<256;i++)
-            {
-                valeursSensorFFTR.append(i,TuDuino.getFFTR(i));
-            }
+                valeursSensorFFTR.append(i,TuDuino.getFFTR(i));//*/
+            for (var j=0;j<4096;j+=8)
+                valeursSensorR.append(Number(j/8),TuDuino.getRightPeak(j));//*/
         }
         onGotBothPeaks:{
             var lclChaine = {
@@ -244,6 +261,7 @@ Window {
                         "AvgFreqL":3.4,
                         "AvgFreqR":0
                     };
+            console.log("here because we got Both Peaks signal !");
             lclChaine.datetime = TuDuino.getPeakTS();
             lclChaine.intensiteL = TuDuino.getIntensiteL();
             lclChaine.intensiteR = TuDuino.getIntensiteR();
