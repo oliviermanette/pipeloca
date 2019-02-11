@@ -133,7 +133,7 @@ void tuduino::calcDiffParameters()
         gfltDownR[j]=0;
         for (int k = i; k < i+DownSamplingRatio; k++) {
               gfltDownL[j]+=gintLeftPeak[k];
-              gfltDownL[j]+=gintRightPeak[k];
+              gfltDownR[j]+=gintRightPeak[k];
         }
         gfltDownL[j]/=DownSamplingRatio;
         gfltDownR[j]/=DownSamplingRatio;
@@ -224,13 +224,13 @@ bool tuduino::savePeak2CSV()
 }
 bool tuduino::saveCurrentPeak(){
     qDebug() << "here to save the file";
-    QFile file("/Users/oliviermanette/Documents/datapipes/FFT_"+QString::number(currentPeakTS)+".csv");
+    QFile file("/Users/oliviermanette/Documents/datapipes/Peak_"+QString::number(currentPeakTS)+".csv");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
         return false;
     QTextStream out(&file);
     out << "Left;Right\r\n";
-    for (short i = 0; i < 4096; ++i) {
-        out << getLeftPeak(i) << ";" << getRightPeak(i) << "\r\n";
+    for (short i = 0; i < 1024; ++i) {
+        out << gfltDownL[i] << ";" << gfltDownR[i] << "\r\n";
     }
     file.close();
     return true;
@@ -244,12 +244,13 @@ void tuduino::receiptSigns()
         askCalk(1);
     }
     else if (gShtBothPeak==4){
+        calcDiffParameters();
         gShtBothPeak=0;
         gblStartedPeak = false;
         gMode[0]=Normal;
         gMode[1]=Normal;
         emit gotBothPeaks();
-        calcDiffParameters();
+
     }
 }
 
@@ -284,7 +285,6 @@ void tuduino::traitementSignal(int sensorID)
             if ((gPosCursor[sensorID]<4096)&&(ok))
                 gPosCursor[sensorID]++;
             if (gPosCursor[sensorID]==4096){
-
                 askFFTL(sensorID);
                 break;
             }
@@ -356,13 +356,30 @@ void tuduino::traitementSignal(int sensorID)
         if (data.split("\r\n").size()>=2){
             if (sensorID==0){
                 gdblMeanL = data.split("\r\n")[0].toDouble(&ok);
-                gIntMaxValL = data.split("\r\n")[1].toInt(&ok);
-                gintMaxPosL = data.split("\r\n")[2].toInt(&ok);
+                if (ok){
+                    gIntMaxValL = data.split("\r\n")[1].toInt(&ok);
+                    gintMaxPosL = data.split("\r\n")[2].toInt(&ok);
+                }
+                else {
+                    gdblMeanL = -1;
+                    gIntMaxValL = -1;
+                    gintMaxPosL = -1;
+                    gMode[sensorID]=Normal;
+                }
             }
             else if (sensorID==1){
                 gdblMeanR = data.split("\r\n")[0].toDouble(&ok);
-                gIntMaxValR = data.split("\r\n")[1].toInt(&ok);
-                gintMaxPosR = data.split("\r\n")[2].toInt(&ok);
+                if (ok){
+                    gIntMaxValR = data.split("\r\n")[1].toInt(&ok);
+                    gintMaxPosR = data.split("\r\n")[2].toInt(&ok);
+                }
+                else {
+                    gdblMeanR = -1;
+                    gIntMaxValR = -1;
+                    gintMaxPosR = -1;
+                    gMode[sensorID]=Normal;
+                }
+
             }
             if (ok)
                 emit gotCalk();
