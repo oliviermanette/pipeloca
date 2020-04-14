@@ -7,3 +7,5 @@ Qui est l'OS pour communiquer via des commandes
 Et 
 https://github.com/oliviermanette/TempUnit
 Qui est la bibliothèque écrite en C qui crée le réseau de quelques neurones sur le hardware.
+
+![capture d'écran](https://github.com/oliviermanette/pipeloca/blob/master/img/pipeloca.png?raw=true)
